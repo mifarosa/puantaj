@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Puantaj</title>
+  <meta name="description" content="Masa tenisi, voleybol, basketbol, futbol ve basit A–B maçları için skor tabelası.">
+  <meta name="theme-color" content="#0b0d10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Puantaj">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="board" class="board">
+    <section class="team" id="team-0" data-team="0" aria-label="A takımı">
+      <div class="team-head">
+        <span class="serve" aria-label="Servis" hidden></span>
+        <span class="team-name"></span>
+        <span class="set-dots"></span>
+      </div>
+      <div class="flip" id="flip-0" role="status" aria-live="polite"></div>
+      <div class="zones"></div>
+    </section>
+
+    <nav class="strip" aria-label="Kontroller">
+      <button type="button" class="strip-btn" id="btn-settings" aria-label="Ayarlar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+      </button>
+      <button type="button" class="strip-btn" id="btn-undo" aria-label="Geri al">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>
+      </button>
+      <div class="info" id="info"></div>
+      <button type="button" class="strip-btn" id="btn-swap" aria-label="Taraf değiştir">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>
+      </button>
+    </nav>
+
+    <section class="team" id="team-1" data-team="1" aria-label="B takımı">
+      <div class="team-head">
+        <span class="serve" aria-label="Servis" hidden></span>
+        <span class="team-name"></span>
+        <span class="set-dots"></span>
+      </div>
+      <div class="flip" id="flip-1" role="status" aria-live="polite"></div>
+      <div class="zones"></div>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="ov-card" role="dialog" aria-modal="true" aria-labelledby="ov-title">
+      <p class="ov-kicker" id="ov-kicker"></p>
+      <h2 id="ov-title"></h2>
+      <p class="ov-score" id="ov-score"></p>
+      <p class="ov-sets" id="ov-sets"></p>
+      <div class="ov-actions">
+        <button type="button" class="btn ghost" id="ov-undo">Geri al</button>
+        <button type="button" class="btn primary" id="ov-next"></button>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="settings" class="sheet" aria-label="Ayarlar"></dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
