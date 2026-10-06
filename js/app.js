@@ -452,6 +452,13 @@ function renderSheet() {
 
       <h3>Son maçlar</h3>
       ${historyHTML()}
+
+      <div class="coffee">
+        <p>Puantaj ücretsiz ve reklamsız.</p>
+        <a class="coffee-pill" href="https://buymeacoffee.com/mifarosa" target="_blank" rel="noopener">
+          <span aria-hidden="true">☕</span> Bana bir kahve ısmarla
+        </a>
+      </div>
     </form>`;
   bindSheet();
 }

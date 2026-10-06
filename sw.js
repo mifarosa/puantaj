@@ -1,5 +1,5 @@
 // Offline cache for the app shell. Bump CACHE when shipping changes.
-const CACHE = 'puantaj-v1';
+const CACHE = 'puantaj-v2';
 const ASSETS = [
   './',
   'index.html',
