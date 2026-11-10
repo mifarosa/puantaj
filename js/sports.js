@@ -1,12 +1,11 @@
 // Sport definitions and scoring rules.
+import { t } from './i18n.js';
 
 export const SPORTS = {
   simple: {
-    name: 'Basit Skor',
     kind: 'points',
   },
   tt: {
-    name: 'Masa Tenisi',
     kind: 'sets',
     target: 11,
     winBy: 2,
@@ -15,7 +14,6 @@ export const SPORTS = {
     serve: 'alternate', // 2 serves each, 1 each from 10–10
   },
   vb: {
-    name: 'Voleybol',
     kind: 'sets',
     target: 25,
     decider: 15, // deciding set is played to 15
@@ -25,10 +23,8 @@ export const SPORTS = {
     serve: 'rally', // the team that wins the rally serves next
   },
   bb: {
-    name: 'Basketbol',
     kind: 'periods',
     periods: 4,
-    periodName: 'Çeyrek',
     minutes: 10,
     minutesOptions: [5, 8, 10, 12],
     overtimeMinutes: 5,
@@ -36,15 +32,16 @@ export const SPORTS = {
     increments: [1, 2, 3],
   },
   fb: {
-    name: 'Futbol',
     kind: 'periods',
     periods: 2,
-    periodName: 'Devre',
     minutes: 45,
     minutesOptions: [10, 15, 20, 25, 30, 35, 40, 45],
     clock: 'up',
   },
 };
+
+export const sportName = (id) => t(`sport.${id}`);
+export const periodName = (id) => t(`period.${id}`);
 
 export const SPORT_ORDER = ['simple', 'tt', 'vb', 'bb', 'fb'];
 
@@ -95,9 +92,9 @@ export function periodLabel(state) {
   const sport = SPORTS[state.sport];
   if (state.period > sport.periods) {
     const ot = state.period - sport.periods;
-    return ot > 1 ? `Uzatma ${ot}` : 'Uzatma';
+    return ot > 1 ? t('period.otN', { n: ot }) : t('period.ot');
   }
-  return `${state.period}. ${sport.periodName}`;
+  return t('period.label', { n: state.period, name: periodName(state.sport) });
 }
 
 export function periodMs(state) {

@@ -1,6 +1,9 @@
 import {
-  SPORTS, SPORT_ORDER, setsToWin, setWinner, setFirstServer, currentServer, periodLabel, periodMs,
+  SPORTS, SPORT_ORDER, sportName, periodName, setsToWin, setWinner, setFirstServer, currentServer, periodLabel, periodMs,
 } from './sports.js';
+import {
+  t, LANGS, getLang, setLang, locale, isDefaultName, applyStatic,
+} from './i18n.js';
 import { setFlip } from './flip.js';
 import {
   loadMatch, saveMatch, loadHistory, addHistory, clearHistory, loadPrefs, savePrefs,
@@ -16,14 +19,20 @@ export const COLORS = ['#e63946', '#2563eb', '#16a34a', '#f97316', '#7c3aed', '#
 
 /* ---------- State ---------- */
 
-const prefs = { sport: 'simple', teams: [{ name: 'A Takımı', color: COLORS[0] }, { name: 'B Takımı', color: COLORS[1] }], ...loadPrefs() };
+// Default team names follow the UI language; custom names are shown as typed.
+const teamLabel = (i) => {
+  const name = m.teams[i].name;
+  return isDefaultName(name, i) ? t(i ? 'team.b' : 'team.a') : name;
+};
+
+const prefs = { sport: 'simple', teams: [{ name: t('team.a'), color: COLORS[0] }, { name: t('team.b'), color: COLORS[1] }], ...loadPrefs() };
 
 function newMatch(sport = prefs.sport) {
   const def = SPORTS[sport];
   return {
     v: 1,
     sport,
-    teams: prefs.teams.map((t) => ({ ...t })),
+    teams: prefs.teams.map((tm) => ({ ...tm })),
     bestOf: prefs[`bestOf_${sport}`] || def.bestOf || 0,
     minutes: prefs[`minutes_${sport}`] || def.minutes || 0,
     score: [0, 0],
@@ -115,8 +124,8 @@ function resultEntry() {
     id: Date.now().toString(36),
     sport: m.sport,
     date: m.startedAt,
-    teams: m.teams.map((t) => t.name),
-    colors: m.teams.map((t) => t.color),
+    teams: m.teams.map((_, i) => teamLabel(i)),
+    colors: m.teams.map((tm) => tm.color),
     score: sets ? finalSets : [...m.score],
     setScores,
   };
@@ -258,14 +267,14 @@ function buildZones() {
   const sport = SPORTS[m.sport];
   const inc = sport.increments || [1];
   $$('.team').forEach((el) => {
-    const t = +el.dataset.team;
+    const team = +el.dataset.team;
     const plus = inc.map((n) => `
-      <button type="button" class="zone plus" data-team="${t}" data-n="${n}" aria-label="${n} sayı ekle">
+      <button type="button" class="zone plus" data-team="${team}" data-n="${n}" aria-label="${t('aria.addPoints', { n })}">
         <span>+${n}</span>
       </button>`).join('');
     $('.zones', el).innerHTML = `
       <div class="zone-row">${plus}</div>
-      <button type="button" class="zone minus" data-team="${t}" data-n="-1" aria-label="1 sayı çıkar"><span>−1</span></button>`;
+      <button type="button" class="zone minus" data-team="${team}" data-n="-1" aria-label="${t('aria.removePoint')}"><span>−1</span></button>`;
   });
   $$('.zone').forEach((z) => z.addEventListener('pointerdown', (e) => {
     e.preventDefault();
@@ -292,21 +301,21 @@ function renderInfo() {
   const order = m.swapped ? [1, 0] : [0, 1];
   if (sport.kind === 'sets') {
     info.innerHTML = `
-      <span class="info-label">${m.set}. Set</span>
+      <span class="info-label">${t('info.set', { n: m.set })}</span>
       <span class="info-main">${m.sets[order[0]]}<i>–</i>${m.sets[order[1]]}</span>`;
   } else if (sport.kind === 'periods') {
     const ended = sport.clock === 'down' && clockElapsed() >= periodMs(m);
     info.innerHTML = `
       <button type="button" class="info-label period" id="btn-period">${periodLabel(m)}</button>
       <button type="button" class="info-main clock ${m.clock.since ? 'running' : ''} ${ended ? 'ended' : ''}" id="btn-clock"
-        aria-label="Saati başlat veya durdur">${clockText()}</button>`;
+        aria-label="${t('aria.toggleClock')}">${clockText()}</button>`;
     $('#btn-clock').addEventListener('click', toggleClock);
     $('#btn-period').addEventListener('click', () => {
       const next = { ...m, period: m.period + 1 };
-      if (confirm(`${periodLabel(next)} başlasın mı? Saat sıfırlanır.`)) nextPeriod();
+      if (confirm(t('confirm.period', { label: periodLabel(next) }))) nextPeriod();
     });
   } else {
-    info.innerHTML = '<span class="info-label">Puantaj</span>';
+    info.innerHTML = `<span class="info-label">${t('info.app')}</span>`;
   }
 }
 
@@ -318,22 +327,22 @@ function renderOverlay() {
   }
   const { type, winner } = m.overlay;
   const sport = SPORTS[m.sport];
-  const name = winner >= 0 ? m.teams[winner].name : '';
+  const name = winner >= 0 ? teamLabel(winner) : '';
   ov.hidden = false;
   ov.style.setProperty('--win', winner >= 0 ? m.teams[winner].color : '#475569');
   if (type === 'set') {
-    $('#ov-kicker').textContent = `${m.set}. set bitti`;
-    $('#ov-title').textContent = `${name} kazandı`;
+    $('#ov-kicker').textContent = t('ov.setDone', { n: m.set });
+    $('#ov-title').textContent = t('ov.wins', { name });
     $('#ov-score').textContent = `${m.score[0]} – ${m.score[1]}`;
-    $('#ov-sets').textContent = `Setler: ${m.sets[0] + (winner === 0 ? 1 : 0)} – ${m.sets[1] + (winner === 1 ? 1 : 0)}`;
-    $('#ov-next').textContent = 'Sonraki set';
+    $('#ov-sets').textContent = t('ov.sets', { a: m.sets[0] + (winner === 0 ? 1 : 0), b: m.sets[1] + (winner === 1 ? 1 : 0) });
+    $('#ov-next').textContent = t('ov.nextSet');
   } else {
     const e = resultEntry();
-    $('#ov-kicker').textContent = 'Maç bitti';
-    $('#ov-title').textContent = winner >= 0 ? `${name} kazandı!` : 'Berabere';
+    $('#ov-kicker').textContent = t('ov.matchDone');
+    $('#ov-title').textContent = winner >= 0 ? t('ov.winsMatch', { name }) : t('ov.draw');
     $('#ov-score').textContent = `${e.score[0]} – ${e.score[1]}`;
     $('#ov-sets').textContent = sport.kind === 'sets' ? e.setScores.map((s) => `${s[0]}-${s[1]}`).join('  ·  ') : '';
-    $('#ov-next').textContent = 'Kaydet ve yeni maç';
+    $('#ov-next').textContent = t('ov.saveNew');
   }
 }
 
@@ -348,7 +357,7 @@ function render() {
     const el = $(`#team-${i}`);
     el.style.setProperty('--c', team.color);
     el.style.setProperty('--ink', inkFor(team.color));
-    $('.team-name', el).textContent = team.name;
+    $('.team-name', el).textContent = teamLabel(i);
     $('.serve', el).hidden = server !== i;
     $('.set-dots', el).innerHTML = sport.kind === 'sets'
       ? Array.from({ length: setsToWin(m) }, (_, k) => `<i class="${k < m.sets[i] ? 'on' : ''}"></i>`).join('')
@@ -364,7 +373,7 @@ function render() {
 /* ---------- Settings sheet ---------- */
 
 const sheet = $('#settings');
-const dateFmt = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const dateFmt = () => new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 function optionChips(name, values, current, fmt = (v) => v) {
   return `<div class="chips" data-opt="${name}">${values.map((v) => `
@@ -373,10 +382,11 @@ function optionChips(name, values, current, fmt = (v) => v) {
 
 function historyHTML() {
   const list = loadHistory();
-  if (!list.length) return '<p class="muted">Henüz kayıtlı maç yok.</p>';
+  const fmt = dateFmt();
+  if (!list.length) return `<p class="muted">${t('history.empty')}</p>`;
   return `<ul class="history">${list.map((e) => `
     <li>
-      <div class="h-top"><b>${esc(SPORTS[e.sport]?.name || '')}</b><span class="muted">${dateFmt.format(new Date(e.date))}</span></div>
+      <div class="h-top"><b>${esc(SPORTS[e.sport] ? sportName(e.sport) : '')}</b><span class="muted">${fmt.format(new Date(e.date))}</span></div>
       <div class="h-score">
         <span class="h-team"><i style="background:${e.colors[0]}"></i>${esc(e.teams[0])}</span>
         <b>${e.score[0]} – ${e.score[1]}</b>
@@ -384,38 +394,38 @@ function historyHTML() {
       </div>
       ${e.setScores?.length ? `<div class="muted h-sets">${e.setScores.map((s) => `${s[0]}-${s[1]}`).join(' · ')}</div>` : ''}
     </li>`).join('')}</ul>
-    <button type="button" class="btn ghost danger" data-act="clear-history">Geçmişi temizle</button>`;
+    <button type="button" class="btn ghost danger" data-act="clear-history">${t('history.clear')}</button>`;
 }
 
 function rulesHTML() {
   const sport = SPORTS[m.sport];
   if (sport.kind === 'sets') {
     return `
-      <h3>Kurallar</h3>
-      <label class="row-label">Maç</label>
-      ${optionChips('bestOf', sport.bestOfOptions, m.bestOf, (v) => `${v} set (${Math.ceil(v / 2)} alan kazanır)`)}
-      <label class="row-label">İlk servis</label>
-      ${optionChips('firstServer', [0, 1], m.firstServer, (v) => esc(m.teams[v].name))}
-      <p class="muted">${sport.target} sayı, 2 fark.${sport.decider ? ` Son set ${sport.decider} sayı.` : ''}
-      ${sport.serve === 'alternate' ? ' Servis 2 sayıda bir, 10–10’dan sonra her sayıda değişir.' : ' Sayıyı alan servis atar.'}</p>`;
+      <h3>${t('rules.title')}</h3>
+      <label class="row-label">${t('rules.match')}</label>
+      ${optionChips('bestOf', sport.bestOfOptions, m.bestOf, (v) => t('rules.bestOf', { n: v, w: Math.ceil(v / 2) }))}
+      <label class="row-label">${t('rules.firstServer')}</label>
+      ${optionChips('firstServer', [0, 1], m.firstServer, (v) => esc(teamLabel(v)))}
+      <p class="muted">${t('rules.setsInfo', { target: sport.target })}${sport.decider ? t('rules.decider', { n: sport.decider }) : ''}
+      ${sport.serve === 'alternate' ? t('rules.serveAlt') : t('rules.serveRally')}</p>`;
   }
   if (sport.kind === 'periods') {
     return `
-      <h3>Kurallar</h3>
-      <label class="row-label">${sport.periodName} süresi</label>
-      ${optionChips('minutes', sport.minutesOptions, m.minutes, (v) => `${v} dk`)}
-      <p class="muted">${sport.periods} ${sport.periodName.toLowerCase()}. Saate dokun: başlat / durdur. ${sport.periodName} adına dokun: sonrakine geç.</p>`;
+      <h3>${t('rules.title')}</h3>
+      <label class="row-label">${t('rules.periodLen', { name: periodName(m.sport) })}</label>
+      ${optionChips('minutes', sport.minutesOptions, m.minutes, (v) => t('rules.min', { n: v }))}
+      <p class="muted">${t('rules.periodsInfo', { n: sport.periods, name: periodName(m.sport).toLocaleLowerCase(locale()), Name: periodName(m.sport) })}</p>`;
   }
-  return '<p class="muted">Kural yok: üst yarı +1, alt yarı −1.</p>';
+  return `<p class="muted">${t('rules.none')}</p>`;
 }
 
 function teamEditorHTML(i) {
-  const t = m.teams[i];
+  const team = m.teams[i];
   return `
     <div class="team-edit" data-i="${i}">
-      <input type="text" maxlength="20" value="${esc(t.name)}" aria-label="${i ? 'B' : 'A'} takımının adı">
+      <input type="text" maxlength="20" value="${esc(teamLabel(i))}" aria-label="${t('aria.teamName', { team: i ? 'B' : 'A' })}">
       <div class="swatches">${COLORS.map((c) => `
-        <button type="button" class="swatch ${c === t.color ? 'active' : ''}" data-color="${c}" style="background:${c}" aria-label="Renk ${c}"></button>`).join('')}
+        <button type="button" class="swatch ${c === team.color ? 'active' : ''}" data-color="${c}" style="background:${c}" aria-label="${t('aria.color', { c })}"></button>`).join('')}
       </div>
     </div>`;
 }
@@ -425,38 +435,42 @@ function renderSheet() {
   sheet.innerHTML = `
     <form method="dialog" class="sheet-inner">
       <div class="sheet-head">
-        <h2>Ayarlar</h2>
-        <button class="icon-btn" value="close" aria-label="Kapat">
+        <h2>${t('sheet.title')}</h2>
+        <button class="icon-btn" value="close" aria-label="${t('aria.close')}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
 
-      <h3>Spor</h3>
+      <h3>${t('sheet.sport')}</h3>
       <div class="chips sports">${SPORT_ORDER.map((id) => `
-        <button type="button" class="chip ${id === m.sport ? 'active' : ''}" data-sport="${id}">${SPORTS[id].name}</button>`).join('')}
+        <button type="button" class="chip ${id === m.sport ? 'active' : ''}" data-sport="${id}">${sportName(id)}</button>`).join('')}
       </div>
 
-      <h3>Takımlar</h3>
+      <h3>${t('sheet.teams')}</h3>
       ${teamEditorHTML(0)}
       ${teamEditorHTML(1)}
 
       ${rulesHTML()}
 
-      <h3>Maç</h3>
+      <h3>${t('sheet.match')}</h3>
       <div class="actions">
-        ${sport.kind !== 'sets' ? '<button type="button" class="btn primary" data-act="end">Maçı bitir</button>' : ''}
-        <button type="button" class="btn ghost" data-act="new">Skoru sıfırla</button>
-        <button type="button" class="btn ghost" data-act="fullscreen">Tam ekran</button>
+        ${sport.kind !== 'sets' ? `<button type="button" class="btn primary" data-act="end">${t('sheet.end')}</button>` : ''}
+        <button type="button" class="btn ghost" data-act="new">${t('sheet.reset')}</button>
+        <button type="button" class="btn ghost" data-act="fullscreen">${t('sheet.fullscreen')}</button>
       </div>
-      <label class="toggle"><input type="checkbox" data-act="vibrate" ${prefs.vibrate !== false ? 'checked' : ''}> Titreşim</label>
+      <label class="toggle"><input type="checkbox" data-act="vibrate" ${prefs.vibrate !== false ? 'checked' : ''}> ${t('sheet.vibrate')}</label>
 
-      <h3>Son maçlar</h3>
+      <h3>${t('sheet.language')}</h3>
+      <div class="chips">${Object.entries(LANGS).map(([id, label]) => `
+        <button type="button" class="chip ${id === getLang() ? 'active' : ''}" data-lang-id="${id}">${label}</button>`).join('')}</div>
+
+      <h3>${t('sheet.recent')}</h3>
       ${historyHTML()}
 
       <div class="coffee">
-        <p>Puantaj ücretsiz ve reklamsız.</p>
+        <p>${t('coffee.free')}</p>
         <a class="coffee-pill" href="https://buymeacoffee.com/mifarosa" target="_blank" rel="noopener">
-          <span aria-hidden="true">☕</span> Bana bir kahve ısmarla
+          <span aria-hidden="true">☕</span> ${t('coffee.cta')}
         </a>
       </div>
     </form>`;
@@ -473,7 +487,7 @@ function bindSheet() {
     const id = b.dataset.sport;
     if (id === m.sport) return;
     const playing = m.score.some((s) => s) || m.setScores.length;
-    if (playing && !confirm('Spor değişince bu maç sıfırlanır. Devam edilsin mi?')) return;
+    if (playing && !confirm(t('confirm.sport'))) return;
     prefs.sport = id;
     savePrefs(prefs);
     startNew(id);
@@ -483,7 +497,7 @@ function bindSheet() {
   $$('.team-edit', sheet).forEach((row) => {
     const i = +row.dataset.i;
     $('input', row).addEventListener('input', (e) => {
-      m.teams[i].name = e.target.value.trim() || (i ? 'B Takımı' : 'A Takımı');
+      m.teams[i].name = e.target.value.trim() || t(i ? 'team.b' : 'team.a');
       rememberTeams();
       save();
       render();
@@ -496,6 +510,13 @@ function bindSheet() {
       $$('.swatch', row).forEach((x) => x.classList.toggle('active', x === s));
     }));
   });
+
+  $$('[data-lang-id]', sheet).forEach((b) => b.addEventListener('click', () => {
+    setLang(b.dataset.langId);
+    buildZones();
+    render();
+    renderSheet();
+  }));
 
   $$('[data-opt]', sheet).forEach((group) => $$('.chip', group).forEach((c) => c.addEventListener('click', () => {
     const key = group.dataset.opt;
@@ -513,7 +534,7 @@ function bindSheet() {
   })));
 
   $('[data-act="new"]', sheet)?.addEventListener('click', () => {
-    if (!confirm('Skor sıfırlansın mı?')) return;
+    if (!confirm(t('confirm.reset'))) return;
     startNew(m.sport, true);
     sheet.close();
   });
@@ -532,7 +553,7 @@ function bindSheet() {
     savePrefs(prefs);
   });
   $('[data-act="clear-history"]', sheet)?.addEventListener('click', () => {
-    if (!confirm('Tüm maç geçmişi silinsin mi?')) return;
+    if (!confirm(t('confirm.clearHistory'))) return;
     clearHistory();
     renderSheet();
   });
@@ -582,6 +603,7 @@ document.addEventListener('pointerdown', () => { if (!wakeLock) keepAwake(); }, 
 
 /* ---------- Boot ---------- */
 
+applyStatic();
 buildZones();
 render();
 keepAwake();

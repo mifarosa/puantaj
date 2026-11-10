@@ -1,11 +1,12 @@
 // Offline cache for the app shell. Bump CACHE when shipping changes.
-const CACHE = 'puantaj-v2';
+const CACHE = 'puantaj-v3';
 const ASSETS = [
   './',
   'index.html',
   'css/style.css',
   'js/app.js',
   'js/flip.js',
+  'js/i18n.js',
   'js/sports.js',
   'js/store.js',
   'manifest.webmanifest',
